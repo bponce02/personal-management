@@ -6,4 +6,6 @@ app_name = "core"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("task-list/", views.task_list, name="task_list"),
+    path("task-create/", views.task_create, name="task_create"),
 ]

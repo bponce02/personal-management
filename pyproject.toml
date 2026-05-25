@@ -9,4 +9,10 @@ dependencies = [
     "django-cotton>=2.6.2",
     "django-htmx>=1.27.0",
     "django-tailwind>=4.4.2",
+    "djlint>=1.36.4",
+]
+
+[dependency-groups]
+dev = [
+    "cookiecutter>=2.7.1",
 ]
