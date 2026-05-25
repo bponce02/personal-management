@@ -1,0 +1,12 @@
+[project]
+name = "personal-management"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.0.5",
+    "django-cotton>=2.6.2",
+    "django-htmx>=1.27.0",
+    "django-tailwind>=4.4.2",
+]
