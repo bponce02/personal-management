@@ -1,12 +1,26 @@
-from django.http import HttpResponse
 from django.shortcuts import redirect, render
 
-from .forms import TaskForm
-from .models import Task
+from .forms import ListForm, TaskForm
+from .models import List, Task
 
 
 def home(request):
-    return HttpResponse("Hello from personal-management.")
+    return render(request, "core/home.html", {"lists": List.objects.all()})
+
+
+def list_list(request):
+    if request.method == "POST":
+        form = ListForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("core:list_list")
+    else:
+        form = ListForm()
+    return render(
+        request,
+        "core/list_list.html",
+        {"lists": List.objects.all(), "form": form},
+    )
 
 
 def task_list(request):

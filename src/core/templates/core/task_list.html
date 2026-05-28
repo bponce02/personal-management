@@ -1,5 +1,18 @@
-<ul>
-    {% for task in task_list %}
-    <li>{{ task }}</li>
-    {% endfor %}
-</ul>
+{% extends "base.html" %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+    <h1 class="text-2xl font-bold">Tasks</h1>
+    <a href="{% url 'core:task_create' %}" class="btn btn-primary btn-sm">+ New Task</a>
+    <ul class="space-y-2">
+        {% for task in task_list %}
+            <li class="card bg-base-100 shadow-sm">
+                <div class="card-body p-4">
+                    <span class="font-medium">{{ task.title }}</span>
+                    {% if task.due_date %}<span class="text-sm opacity-60">Due {{ task.due_date }}</span>{% endif %}
+                </div>
+            </li>
+        {% empty %}
+            <li class="text-center opacity-60 py-8">No tasks yet. Create one!</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

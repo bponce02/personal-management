@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>New Task</title>
-</head>
-<body>
-    <h1>New Task</h1>
-
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Save</button>
-    </form>
-
-    <p><a href="{% url 'core:task_list' %}">Back to tasks</a></p>
-</body>
+    <head>
+        <meta charset="utf-8">
+        <title>New Task</title>
+    </head>
+    <body>
+        <h1>New Task</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Save</button>
+        </form>
+        <p>
+            <a href="{% url 'core:task_list' %}">Back to tasks</a>
+        </p>
+    </body>
 </html>

@@ -15,4 +15,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "cookiecutter>=2.7.1",
+    "honcho>=2.0.0",
 ]

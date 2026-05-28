@@ -1,0 +1,24 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>
+            {% block title %}Personal Management{% endblock %}
+        </title>
+        {% tailwind_css %}
+        <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    </head>
+    <body class="min-h-screen"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        <nav class="flex gap-4 border-b p-4">
+            <a href="{% url 'core:home' %}">Home</a>
+            <a href="{% url 'core:list_list' %}">Lists</a>
+            <a href="{% url 'core:task_list' %}">Tasks</a>
+        </nav>
+        <main class="mx-auto max-w-2xl p-4">
+            {% block content %}{% endblock %}
+        </main>
+    </body>
+</html>
