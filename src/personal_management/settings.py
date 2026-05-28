@@ -10,10 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Radicale CalDAV sync (Django acts as a client of the local Radicale server).
+# If RADICALE_USERNAME and RADICALE_PASSWORD are not set, all sync is a no-op.
+RADICALE_URL = os.environ.get("RADICALE_URL", "http://localhost:5232")
+RADICALE_USERNAME = os.environ.get("RADICALE_USERNAME")
+RADICALE_PASSWORD = os.environ.get("RADICALE_PASSWORD")
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,7 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "ninja_extra",
     "ninja_jwt",
-    "core",
+    "core.apps.CoreConfig",
 ]
 
 MIDDLEWARE = [

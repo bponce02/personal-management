@@ -2,9 +2,21 @@
 default:
     @just --list
 
+# run Django + Radicale together (main dev command)
+[parallel]
+dev: runserver radicale
+
 # start the Django dev server
 runserver:
     uv run python src/manage.py runserver
+
+# start the Radicale CalDAV server (phone connects to this)
+radicale:
+    uv run radicale --config radicale.conf
+
+# create a Radicale user (prompts for username and password)
+radicale-adduser:
+    uv run python scripts/radicale_adduser.py
 
 # run the test suite (pass extra args, e.g. `just test -k auth`)
 test *ARGS:

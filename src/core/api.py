@@ -6,6 +6,7 @@ from ninja_extra import NinjaExtraAPI
 from ninja_jwt.authentication import JWTAuth
 from ninja_jwt.controller import NinjaJWTDefaultController
 
+from . import radicale_sync
 from .models import List, Task, View
 
 api = NinjaExtraAPI()
@@ -118,3 +119,11 @@ def tasks_update(request, task_id: int, payload: TaskPatch):
 def tasks_delete(request, task_id: int):
     get_object_or_404(Task, id=task_id).delete()
     return {"success": True}
+
+
+@api.post("/caldav/pull", auth=auth)
+def caldav_pull(request):
+    if not radicale_sync.is_enabled():
+        return {"enabled": False, "created": 0, "updated": 0, "deleted": 0}
+    counts = radicale_sync.pull()
+    return {"enabled": True, **counts}

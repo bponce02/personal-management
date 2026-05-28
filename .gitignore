@@ -1,4 +1,6 @@
-
-src/db.sqlite3
 src/db.sqlite3
 *.pyc
+
+# Radicale: runtime data and credentials
+radicale_data/
+radicale.htpasswd

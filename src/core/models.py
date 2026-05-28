@@ -9,6 +9,7 @@ class View(models.TextChoices):
 class List(models.Model):
     title = models.CharField(max_length=255)
     view = models.CharField(max_length=255, choices=View.choices, default=View.LIST)
+    remote_url = models.CharField(max_length=500, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -20,6 +21,8 @@ class Task(models.Model):
     completed = models.BooleanField(default=False)
     due_date = models.DateField(null=True, blank=True)
     list = models.ForeignKey(List, on_delete=models.CASCADE, related_name="tasks")
+    remote_uid = models.CharField(max_length=255, null=True, blank=True)
+    remote_etag = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.title
