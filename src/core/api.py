@@ -1,11 +1,17 @@
 from datetime import date
 
 from django.shortcuts import get_object_or_404
-from ninja import NinjaAPI, Schema
+from ninja import Schema
+from ninja_extra import NinjaExtraAPI
+from ninja_jwt.authentication import JWTAuth
+from ninja_jwt.controller import NinjaJWTDefaultController
 
 from .models import List, Task, View
 
-api = NinjaAPI()
+api = NinjaExtraAPI()
+api.register_controllers(NinjaJWTDefaultController)
+
+auth = JWTAuth()
 
 
 class ListIn(Schema):
@@ -49,22 +55,22 @@ class TaskOut(Schema):
     list_id: int
 
 
-@api.get("/lists", response=list[ListOut])
+@api.get("/lists", response=list[ListOut], auth=auth)
 def lists_index(request):
     return List.objects.all()
 
 
-@api.post("/lists", response=ListOut)
+@api.post("/lists", response=ListOut, auth=auth)
 def lists_create(request, payload: ListIn):
     return List.objects.create(**payload.dict())
 
 
-@api.get("/lists/{list_id}", response=ListOut)
+@api.get("/lists/{list_id}", response=ListOut, auth=auth)
 def lists_detail(request, list_id: int):
     return get_object_or_404(List, id=list_id)
 
 
-@api.patch("/lists/{list_id}", response=ListOut)
+@api.patch("/lists/{list_id}", response=ListOut, auth=auth)
 def lists_update(request, list_id: int, payload: ListPatch):
     obj = get_object_or_404(List, id=list_id)
     for field, value in payload.dict(exclude_unset=True).items():
@@ -73,13 +79,13 @@ def lists_update(request, list_id: int, payload: ListPatch):
     return obj
 
 
-@api.delete("/lists/{list_id}")
+@api.delete("/lists/{list_id}", auth=auth)
 def lists_delete(request, list_id: int):
     get_object_or_404(List, id=list_id).delete()
     return {"success": True}
 
 
-@api.get("/tasks", response=list[TaskOut])
+@api.get("/tasks", response=list[TaskOut], auth=auth)
 def tasks_index(request, list_id: int | None = None, completed: bool | None = None):
     qs = Task.objects.all()
     if list_id is not None:
@@ -89,17 +95,17 @@ def tasks_index(request, list_id: int | None = None, completed: bool | None = No
     return qs
 
 
-@api.post("/tasks", response=TaskOut)
+@api.post("/tasks", response=TaskOut, auth=auth)
 def tasks_create(request, payload: TaskIn):
     return Task.objects.create(**payload.dict())
 
 
-@api.get("/tasks/{task_id}", response=TaskOut)
+@api.get("/tasks/{task_id}", response=TaskOut, auth=auth)
 def tasks_detail(request, task_id: int):
     return get_object_or_404(Task, id=task_id)
 
 
-@api.patch("/tasks/{task_id}", response=TaskOut)
+@api.patch("/tasks/{task_id}", response=TaskOut, auth=auth)
 def tasks_update(request, task_id: int, payload: TaskPatch):
     obj = get_object_or_404(Task, id=task_id)
     for field, value in payload.dict(exclude_unset=True).items():
@@ -108,7 +114,7 @@ def tasks_update(request, task_id: int, payload: TaskPatch):
     return obj
 
 
-@api.delete("/tasks/{task_id}")
+@api.delete("/tasks/{task_id}", auth=auth)
 def tasks_delete(request, task_id: int):
     get_object_or_404(Task, id=task_id).delete()
     return {"success": True}

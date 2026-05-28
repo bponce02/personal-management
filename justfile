@@ -6,6 +6,10 @@ default:
 runserver:
     uv run python src/manage.py runserver
 
+# run the test suite (pass extra args, e.g. `just test -k auth`)
+test *ARGS:
+    uv run pytest {{ARGS}}
+
 migrate:
     uv run python src/manage.py migrate
 
