@@ -4,7 +4,7 @@ default:
 
 # run Django + Radicale together (main dev command)
 [parallel]
-dev: runserver radicale
+dev: runserver radicale npm-dev
 
 # start the Django dev server
 runserver:
@@ -30,3 +30,9 @@ makemigrations:
 
 createsuperuser:
     uv run python src/manage.py createsuperuser
+
+npm-dev:
+    cd frontend && npm run dev
+
+npm-install:
+    cd frontend && npm install
