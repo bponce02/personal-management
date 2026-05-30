@@ -36,3 +36,11 @@ npm-dev:
 
 npm-install:
     cd frontend && npm install
+
+# build the React app to frontend/dist (read by django-vite in prod)
+build-frontend:
+    cd frontend && npm run build
+
+# build the frontend and collect everything into STATIC_ROOT for serving
+build: build-frontend
+    uv run python src/manage.py collectstatic --noinput

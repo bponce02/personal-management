@@ -1,8 +1,8 @@
 import { auth } from './auth'
 
-// Empty (relative) by default: requests go to the same origin and the Vite dev
-// proxy (see vite.config.ts) forwards /api to Django. Override with VITE_API_URL
-// to point straight at the API (e.g. a deployed backend with CORS enabled).
+// Empty (relative) by default: Django serves the HTML shell *and* the API on
+// the same origin, so /api/... is just a same-origin fetch. Override with
+// VITE_API_URL only if you're talking to a separately-hosted backend.
 export const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 export interface TokenPair {

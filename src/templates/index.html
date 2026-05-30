@@ -1,0 +1,19 @@
+{% load django_vite %}<!doctype html>
+<html lang="en" suppressHydrationWarning>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personal Tasks</title>
+    {# Restore the theme class before paint to avoid a light/dark flash. #}
+    <script>
+      (function(){try{var s=localStorage.getItem('theme'),d=s==='light'||s==='dark'?s:window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(d);}catch(e){}})();
+    </script>
+    {% vite_hmr_client %}
+    {# React Refresh preamble — required by @vitejs/plugin-react in dev. #}
+    {% vite_react_refresh %}
+    {% vite_asset 'src/main.tsx' %}
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <div id="root"></div>
+  </body>
+</html>

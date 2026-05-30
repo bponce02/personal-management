@@ -19,16 +19,19 @@ A personal task/list management backend, exposed as a **JSON API only**. There a
 From a fresh clone:
 
 ```sh
-uv sync                         # install everything
+uv sync                         # install Python deps
+just npm-install                # install frontend deps (one-time)
 just migrate                    # apply Django migrations
 just createsuperuser            # JWT user (for /api/token/pair)
 just radicale-adduser           # Radicale user (entry in radicale.htpasswd) — separate auth DB
 export RADICALE_USERNAME=<u>    # must match what radicale-adduser created
 export RADICALE_PASSWORD=<p>
-just dev                        # Django + Radicale together
+just dev                        # Django + Radicale + Vite together; visit http://localhost:8000
 ```
 
 Without the `RADICALE_*` env vars, Django runs fine but the CalDAV bridge is dormant. That's by design — it's also why CI/tests can run without Radicale present.
+
+For a production-style run: `just build` (builds the frontend + collectstatic), then run Django with `DEBUG=False`. No Vite process is needed; django-vite reads `frontend/dist/.vite/manifest.json`.
 
 ## Common commands
 
@@ -140,8 +143,8 @@ The UI lives in **`frontend/`** — a standalone npm/Vite project, *not* managed
 
 ### Stack
 
-- React 19 + TypeScript, bundled with **Vite 8**
-- **TanStack Router** + **TanStack Start** for file-based routing (the project uses the `tanstackStart` Vite plugin, so an SSR shell exists)
+- React 19 + TypeScript, bundled with **Vite 8** — pure SPA, no SSR
+- **TanStack Router** for file-based routing (the `tanstackRouter` Vite plugin regenerates `src/routeTree.gen.ts`). The entry is `src/main.tsx`; there is no `index.html` in `frontend/` — Django serves the HTML shell via a template (`src/templates/index.html`) and **django-vite** injects the script/link tags.
 - **TanStack Query** (`@tanstack/react-query`) for all server state
 - **TanStack Form** + **Zod** (v4) for form state and validation
 - **@internationalized/date** — date types for HeroUI date components (`DatePicker`)
@@ -150,24 +153,29 @@ The UI lives in **`frontend/`** — a standalone npm/Vite project, *not* managed
 
 ### Commands (run from `frontend/`)
 
-- `npm run dev` — Vite dev server on **`:3000`** (the `--port 3000` in the `dev` script overrides `vite.config.ts`'s `8080`)
-- `npm run build` / `npm run preview`
+- `npm run dev` — Vite dev server on **`:3000`** (module server + HMR; visit Django on `:8000`, not Vite directly)
+- `npm run build` — writes `frontend/dist/` with a hashed bundle and `.vite/manifest.json` for django-vite to read in prod
+- `npm run preview`
 - `npm run test` — vitest
 - `npm run lint` (eslint), `npm run format` (prettier + `eslint --fix`), `npm run check` (prettier check)
 
 Path aliases `#/*` and `@/*` both map to `./src/*`. `src/routeTree.gen.ts` is **generated** by the router plugin — never hand-edit it.
 
-### Connecting to the API (this is how CORS is avoided)
+### Serving topology (Django serves the shell, Vite serves modules)
 
-Django has **no CORS configured**, and a cross-origin `application/json` POST triggers a preflight Django answers with `405`. So instead of calling `:8000` directly, the Vite dev server **proxies `/api` → `http://localhost:8000`** (see `server.proxy` in `vite.config.ts`). The browser therefore talks *same-origin* and there's no preflight/CORS problem.
+The browser **always loads `:8000` (Django)**. Django renders `src/templates/index.html`, which uses **django-vite** template tags (`{% vite_hmr_client %}` + `{% vite_asset 'src/main.tsx' %}`) to inject the right `<script>` / `<link>` tags:
 
-Because of the proxy, `API_BASE` in `src/lib/api.ts` defaults to `''` (relative). Set `VITE_API_URL` to point straight at a backend (e.g. a deployed API **with** CORS enabled). **The proxy is dev-only** — a production deploy must either serve the client from the same origin as the API or enable CORS on Django.
+- **Dev** (`DJANGO_VITE.default.dev_mode = DEBUG`): tags point at `http://localhost:3000/...` so the browser fetches ES modules + the HMR websocket directly from Vite. Vite is just a module server — visiting `:3000` standalone won't work (no `index.html` entry).
+- **Prod** (`dev_mode = False`): tags read `frontend/dist/.vite/manifest.json` and emit hashed URLs under `/static/assets/...`. Django (via `STATICFILES_DIRS = [frontend/dist]`) serves them.
 
-**Do not add a server.** Per project intent, there is already a Django API; don't add TanStack Start server functions or server-side loaders that call Django. All API access is **client-side** via TanStack Query + `apiFetch`.
+Because everything is same-origin on `:8000`, **there is no CORS, no Vite `/api` proxy, and no preflight**. `API_BASE` in `src/lib/api.ts` defaults to `''` (relative) — `fetch('/api/...')` hits Django directly. Set `VITE_API_URL` only if you're pointing the client at a separately-hosted backend (which *would* need CORS).
+
+**Do not add a server.** All API access is **client-side** via TanStack Query + `apiFetch`. There is no SSR; the app is a pure SPA.
 
 ### File layout (`frontend/src/`)
 
-- `routes/__root.tsx` — HTML shell; mounts `QueryClientProvider` (one client per app instance via `useState`, so SSR and client don't share cache). Also runs a blocking inline script to restore `light`/`dark` class from `localStorage` before paint (prevents flash). There is **no `HeroUIProvider`** — HeroUI v3 doesn't have one.
+- `main.tsx` — SPA entry. Creates the TanStack Router, wraps `<RouterProvider>` in `QueryClientProvider` (one client per app instance via `useState`) and `<Toast.Provider>`, mounts into `#root`. Imports `styles.css` as a side effect. There is **no `HeroUIProvider`** — HeroUI v3 doesn't have one.
+- `routes/__root.tsx` — minimal: just `createRootRoute({ component: () => <Outlet /> })`. The HTML shell lives in Django (`src/templates/index.html`), which includes the blocking inline script that restores the `light`/`dark` class from `localStorage` before paint (prevents flash).
 - `routes/index.tsx` — welcome page (redirects to `/tasks` if already authed)
 - `routes/login.tsx` — username/password sign-in; uses `variant="secondary"` on `<Input>` so fields are visible against the card background
 - `routes/_authenticated.tsx` — layout-route guard + shell. Desktop: 3-column grid header (`logo | centered tabs | settings`). Mobile: floating bottom tab bar (`position: fixed`). Redirects to `/login` when not authenticated (runs client-only — early-returns on the server). Contains `PrimaryTabs` — active tab is derived from pathname; returns `undefined` (not a default tab) on non-tab routes like `/settings` so nothing is highlighted.
@@ -226,7 +234,7 @@ Uses **`canvas-confetti`** (not `react-rewards`, which remains in `package.json`
 - Routes are protected per-decorator via `auth=auth`. There is no global middleware enforcement, so a forgotten `auth=` argument silently makes a route public. New routes should always include it unless they're explicitly meant to be unauthenticated (and there should be a very good reason for that).
 - There's no register endpoint. New users come from `just createsuperuser` or the Django admin. If/when you add a register endpoint, it's the one route that needs to stay unauthenticated.
 - Token lifetimes are `ninja-jwt` defaults (5 min access, 1 day refresh). Override via a `SIMPLE_JWT` dict in settings if needed.
-- CORS **is** configured on Django via `django-cors-headers`. `CORS_ALLOWED_ORIGINS` in `settings.py` currently allows `http://localhost:3000`. If you add another origin (e.g. a deployed frontend), add it to that list explicitly — do not use `CORS_ALLOW_ALL_ORIGINS`. The Vite dev proxy (`/api` → `:8000`) also remains in place, so in dev the browser can talk same-origin without relying on CORS headers.
+- **CORS is not configured** — Django serves the HTML shell *and* the API on the same origin, so the browser never makes a cross-origin request to the API. If you ever host the React app on a separate domain (and point `VITE_API_URL` at Django), you'll need to add `django-cors-headers` back and allowlist that origin.
 
 ## Gotchas worth knowing about
 
@@ -239,7 +247,8 @@ A few decisions in this repo that look weird without context:
 - **No global auth middleware.** Routes are protected one decorator at a time via `auth=auth`. There is no safety net — a forgotten `auth=` keyword silently makes the route public.
 - **`pytest` runs with `RADICALE_USERNAME` unset.** Sync is a no-op throughout the test suite. If you ever want to test the sync path itself, you'll need to either spin up Radicale as a fixture or mock `caldav.DAVClient` — neither is set up yet.
 - **`radicale.htpasswd` and `radicale_data/` are gitignored.** Fresh clones have no users and no data. `just radicale-adduser` creates the first user; Radicale auto-creates the storage dirs on first request.
-- **The frontend is a separate npm project under `frontend/`.** It is not part of `uv`/`just`; run `npm` commands from inside `frontend/`. The dev server is on `:3000` (npm script overrides `vite.config.ts`'s `8080`).
-- **Frontend → API goes through a Vite dev proxy, not a direct cross-origin call.** `/api` is proxied to `:8000` so the browser stays same-origin. This is dev-only. CORS is also configured (`django-cors-headers`, `CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]`) as a fallback, but the proxy is preferred in dev.
+- **The frontend is a separate npm project under `frontend/`.** It is not part of `uv`/`just`; run `npm` commands from inside `frontend/`. Vite runs on `:3000` and serves only ES modules — the **browser always loads `:8000` (Django)**.
+- **`just build` is the production path.** It runs `npm run build` (writes `frontend/dist/` including `.vite/manifest.json`) then `collectstatic`. After that, Django with `DEBUG=False` serves the same SPA at `:8000` without Vite running.
+- **Visiting `:3000` directly will 404.** There is no `frontend/index.html` — the Vite entry is `src/main.tsx`. Vite is a module/HMR server only; the HTML shell lives in `src/templates/index.html` and is served by Django.
 - **Frontend JWTs are stored in JS-readable cookies, not `httpOnly`.** The API returns tokens in the body, so httpOnly isn't possible without a backend change. Not more XSS-safe than localStorage.
 - **HeroUI is v3 beta — verify components via the `heroui-react` MCP.** Web/v2 docs are misleading (compound components, no `HeroUIProvider`, `isPending` not `isLoading`). Components: HeroUI v3 only; icons: lucide-react only.

@@ -46,13 +46,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "ninja_extra",
     "ninja_jwt",
-    "corsheaders",
+    "django_vite",
     "core.apps.CoreConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -66,7 +65,7 @@ ROOT_URLCONF = "personal_management.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -125,10 +124,25 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+#
+# The frontend is a Vite project at ../frontend. `npm run build` writes hashed
+# assets and a manifest into frontend/dist/. We add that dir to STATICFILES_DIRS
+# so collectstatic (and runserver in DEBUG) serves it under /static/.
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# CORS — allow the Vite dev server to reach the API
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
+
+STATICFILES_DIRS = [FRONTEND_DIST]
+
+# django-vite: in dev_mode the template tags point at the Vite dev server
+# (HMR + ESM via http://localhost:3000). In prod they read the manifest written
+# by `npm run build` and emit hashed <script>/<link> tags under STATIC_URL.
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG,
+        "dev_server_port": 3000,
+        "manifest_path": FRONTEND_DIST / ".vite" / "manifest.json",
+    }
+}
